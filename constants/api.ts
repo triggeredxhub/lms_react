@@ -20,7 +20,9 @@ export const API_CONFIG = {
   // API Endpoints
   ENDPOINTS: {
     // Auth
-    SIGNIN: "/api/auth/signin",
+    SIGNINEMS: "/api/user/login",
+    SIGNINHRIS: "api/hris_user/login_hris",
+
     SIGNUP: "/api/auth/signup",
     GOOGLE_AUTH: "/api/auth/google",
     FORGOT_PASSWORD: "/api/auth/forgot-password",

@@ -99,7 +99,7 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      const res = await api.post(API_CONFIG.ENDPOINTS.SIGNIN, formData);
+      const res = await api.post(API_CONFIG.ENDPOINTS.SIGNINEMS, formData);
 
       try {
         await SecureStore.setItemAsync("auth_token", res.token);
@@ -249,7 +249,8 @@ export default function LoginScreen() {
                 styles.loginButton,
                 loading && styles.loginButtonDisabled,
               ]}
-              onPress={handleLogin}
+              // onPress={handleLogin}
+              onPress={() => router.push("/courseList")}
               disabled={loading}
               activeOpacity={0.8}
             >
