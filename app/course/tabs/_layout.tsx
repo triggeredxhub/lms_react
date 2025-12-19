@@ -5,7 +5,6 @@ export default function CourseTabsLayout() {
   return (
     <Tabs
       screenOptions={{
-    
         tabBarActiveTintColor: "#323276",
         tabBarInactiveTintColor: "#999",
       }}
@@ -21,6 +20,7 @@ export default function CourseTabsLayout() {
               color={color}
             />
           ),
+          headerShown: false,
         }}
       />
 
@@ -35,6 +35,7 @@ export default function CourseTabsLayout() {
               color={color}
             />
           ),
+          headerShown: false,
         }}
       />
 
@@ -49,6 +50,7 @@ export default function CourseTabsLayout() {
               color={color}
             />
           ),
+          headerShown: false,
         }}
       />
     </Tabs>

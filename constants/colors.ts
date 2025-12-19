@@ -4,11 +4,11 @@ const colors = {
   black: "#000000",
   violet: "#323276",
   gray: "#f6f6f7",
-  blue: "#0A5AF9",
+  blue: "#3b82f6",
   red: "#ff0000",
 
   // Background colors
-  background: "#fafbfa",
+  background: "#f9fafb",
   backgroundLight: "#E8EAF6",
   backgroundCard: "#ffffff",
 
