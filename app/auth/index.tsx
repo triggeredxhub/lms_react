@@ -249,8 +249,8 @@ export default function LoginScreen() {
                 styles.loginButton,
                 loading && styles.loginButtonDisabled,
               ]}
-              // onPress={handleLogin}
-              onPress={() => router.push("/courseList")}
+               onPress={handleLogin}
+              // onPress={() => router.push("/courseList")}
               disabled={loading}
               activeOpacity={0.8}
             >
