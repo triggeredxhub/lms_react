@@ -100,8 +100,9 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       const res = await api.post(API_CONFIG.ENDPOINTS.SIGNINEMS, formData);
-
+      console.log("Login response:", res);
       try {
+
         await SecureStore.setItemAsync("auth_token", res.token);
         if (res.user) {
           await SecureStore.setItemAsync("user", JSON.stringify(res.user));

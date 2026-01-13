@@ -1,47 +1,66 @@
 import CourseProgressCard from "@/components/ui/CourseProgressCard";
+import { api } from "@/lib/api";
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 
+interface course {
+  courseId: number;
+  courseName: string;
+  courseDescription: string | null;
+}
 export default function CourseList() {
   const router = useRouter();
+  const [courses, setCourses] = useState<course[]>([]);
+
+  const fetchCourses = async () => {
+    try {
+      const response = await api.get("/course/student-courses", {}, true);
+      setCourses(response.courses);
+    } catch {
+      console.error("Failed to fetch courses");
+    }
+  };
+
+  useEffect(() => {
+    fetchCourses();
+  });
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <ScrollView style={{ flex: 1, padding: 10 }}>
-        <View style= {styles.header}>
-        <Text style={styles.title}>My Courses</Text>
-        <Text>Welcome back! Name</Text>
+        <View style={styles.header}>
+          <Text style={styles.title}>My Courses</Text>
+          <Text>Welcome back! Name</Text>
         </View>
 
-        <TouchableOpacity onPress={() => router.push("/course")}>
-          <CourseProgressCard progress={45} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push("/course")}>
-          <CourseProgressCard progress={45} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push("/course")}>
-          <CourseProgressCard progress={45} />
-        </TouchableOpacity>
+        {courses.map((course) => (
+          <TouchableOpacity
+            key={course.courseId}
+            onPress={() => router.push(`/course`)}
+          >
+            <CourseProgressCard title={course.courseName} progress={45} />
+          </TouchableOpacity>
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-header: {
-  marginBottom: 20,
-},
+  header: {
+    marginBottom: 20,
+  },
   title: {
     fontSize: 20,
     fontWeight: "700",
-
   },
   card: {
     width: "100%",
