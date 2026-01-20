@@ -1,8 +1,10 @@
 import { AnnouncementCard } from "@/components/ui/AnnouncementCard";
 import { ProjectNotificationCard } from "@/components/ui/NotificationCard";
 import colors from "@/constants/colors";
+import { api } from "@/lib/api";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -12,11 +14,41 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+interface CourseData {
+  courseId: number;
+  courseName: string;
+  courseDescription: string | null;
+  instructorId: number;
+}
+
 export default function OverviewTab() {
   const router = useRouter();
+  const { courseId } = useLocalSearchParams<{ courseId: string }>();
+  console.log("Course ID from params:", courseId);
+
+  const [courseDetails, setCourseDetails] = useState<CourseData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchCourseData = async () => {
+    try {
+      const response = await api.get(`/course/${courseId}`, {}, true);
+      console.log("Course data:", response);
+
+      setCourseDetails(response);
+    } catch (error) {
+      console.error("Failed to fetch course:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (courseId) {
+      fetchCourseData();
+    }
+  }, []);
 
   return (
-    // Only protect TOP safe area (important)
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <View style={styles.screen}>
         {/* HEADER */}
@@ -26,18 +58,16 @@ export default function OverviewTab() {
             onPress={() => router.back()}
           >
             <Ionicons name="arrow-back" size={24} color={colors.white} />
-            <Text style={styles.backText}>Back</Text>
           </TouchableOpacity>
 
           <View style={styles.headerText}>
-            <Text style={styles.headerTitle}>Course Title</Text>
-            <Text style={styles.headerSubtitle}>
-              Course Overview Content
+            <Text style={styles.headerTitle}>
+              {loading ? "Loading..." : courseDetails?.courseName}
             </Text>
           </View>
         </View>
 
-        {/* BODY (Scrollable) */}
+        {/* BODY */}
         <ScrollView
           style={styles.body}
           contentContainerStyle={styles.bodyContent}
@@ -67,9 +97,10 @@ export default function OverviewTab() {
               Course Overview / Description
             </Text>
             <Text style={styles.description}>
-              This course provides an in-depth understanding of user experience
-              (UX) design principles and practices. Students will learn how to
-              create user-centered designs through research.
+              {loading
+                ? "Loading course description..."
+                : (courseDetails?.courseDescription ??
+                  "No description available.")}
             </Text>
           </View>
         </ScrollView>
@@ -77,6 +108,7 @@ export default function OverviewTab() {
     </SafeAreaView>
   );
 }
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -93,12 +125,14 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 16,
     paddingBottom: 16,
+    flexDirection: "row",
+    marginTop: 8,
   },
 
   backButton: {
-    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    flexDirection: "row",
+    marginRight: 8,
   },
 
   backText: {

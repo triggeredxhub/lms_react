@@ -44,7 +44,12 @@ export default function CourseList() {
         {courses.map((course) => (
           <TouchableOpacity
             key={course.courseId}
-            onPress={() => router.push(`/course`)}
+            onPress={() =>
+              router.push({
+                pathname: "/course/tabs/overview",
+                params: { courseId: String(course.courseId) },
+              })
+            }
           >
             <CourseProgressCard title={course.courseName} progress={45} />
           </TouchableOpacity>

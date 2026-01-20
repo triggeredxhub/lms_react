@@ -100,9 +100,8 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       const res = await api.post(API_CONFIG.ENDPOINTS.SIGNINEMS, formData);
-      console.log("Login response:", res);
+      //console.log("Login response:", res);
       try {
-
         await SecureStore.setItemAsync("auth_token", res.token);
         if (res.user) {
           await SecureStore.setItemAsync("user", JSON.stringify(res.user));
@@ -120,7 +119,10 @@ export default function LoginScreen() {
         type: "success",
         message: "Login successful!",
       });
-      setTimeout(() => router.replace("/courseList"), TIMING.SUCCESS_REDIRECT_DELAY);
+      setTimeout(
+        () => router.replace("/courseList"),
+        TIMING.SUCCESS_REDIRECT_DELAY,
+      );
     } catch (error: any) {
       setAlert({
         visible: true,
@@ -250,7 +252,7 @@ export default function LoginScreen() {
                 styles.loginButton,
                 loading && styles.loginButtonDisabled,
               ]}
-               onPress={handleLogin}
+              onPress={handleLogin}
               // onPress={() => router.push("/courseList")}
               disabled={loading}
               activeOpacity={0.8}
