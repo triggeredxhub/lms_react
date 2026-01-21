@@ -24,6 +24,7 @@ export default function CourseList() {
   const fetchCourses = async () => {
     try {
       const response = await api.get("/course/student-courses", {}, true);
+      console.log("Courses response:", response);
       setCourses(response.courses);
     } catch {
       console.error("Failed to fetch courses");

@@ -1,7 +1,8 @@
-import { AnnouncementCard } from "@/components/ui/AnnouncementCard";
-import { ProjectNotificationCard } from "@/components/ui/NotificationCard";
+import { ClassworkCard } from "@/components/ui/ClassworkCard";
 import colors from "@/constants/colors";
-import { api } from "@/lib/api";
+import { Course } from "@/models/course/Course.model";
+import { CourseFeedItem } from "@/models/course/CourseFeed.model";
+import { getCourse, getCourseClasswork } from "@/services/course.service";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -14,27 +15,19 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-interface CourseData {
-  courseId: number;
-  courseName: string;
-  courseDescription: string | null;
-  instructorId: number;
-}
-
 export default function OverviewTab() {
   const router = useRouter();
   const { courseId } = useLocalSearchParams<{ courseId: string }>();
   console.log("Course ID from params:", courseId);
-
-  const [courseDetails, setCourseDetails] = useState<CourseData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [classworkLoading, setClassworkLoading] = useState(true);
+  const [courseDetails, setCourseDetails] = useState<Course | null>(null);
+  const [classworks, setClasswork] = useState<CourseFeedItem[]>([]);
 
   const fetchCourseData = async () => {
     try {
-      const response = await api.get(`/course/${courseId}`, {}, true);
-      console.log("Course data:", response);
-
-      setCourseDetails(response);
+      const data = await getCourse(courseId!);
+      setCourseDetails(data);
     } catch (error) {
       console.error("Failed to fetch course:", error);
     } finally {
@@ -42,11 +35,39 @@ export default function OverviewTab() {
     }
   };
 
-  useEffect(() => {
-    if (courseId) {
-      fetchCourseData();
+  const fetchClasswork = async () => {
+    try {
+      const data = await getCourseClasswork(courseId!);
+      setClasswork(data);
+    } catch (error) {
+      console.error("Failed to fetch classwork:", error);
+    } finally {
+      setClassworkLoading(false);
     }
-  }, []);
+  };
+
+  useEffect(() => {
+    if (!courseId) return;
+
+    async function loadData() {
+      try {
+        const [course, classwork] = await Promise.all([
+          getCourse(courseId),
+          getCourseClasswork(courseId),
+        ]);
+
+        setCourseDetails(course);
+        setClasswork(classwork);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+        setClassworkLoading(false);
+      }
+    }
+
+    loadData();
+  }, [courseId]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -73,24 +94,6 @@ export default function OverviewTab() {
           contentContainerStyle={styles.bodyContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Announcements */}
-          <View style={styles.section}>
-            <AnnouncementCard
-              title="Announcements"
-              subtitle="Don't forget to submit your wireframes by Friday!"
-              time="2 hours ago"
-            />
-          </View>
-
-          {/* Up Next */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Up Next</Text>
-            <ProjectNotificationCard
-              title="Project: Wireframing"
-              dueText="Due Tomorrow"
-            />
-          </View>
-
           {/* Description */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
@@ -102,6 +105,57 @@ export default function OverviewTab() {
                 : (courseDetails?.courseDescription ??
                   "No description available.")}
             </Text>
+          </View>
+          {/* Up Next */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Up Next</Text>
+            {classworkLoading ? (
+              <Text>Loading classwork...</Text>
+            ) : classworks.length === 0 ? (
+              <Text>No classwork available</Text>
+            ) : (
+              classworks.map((item, index) => {
+                let itemId: number;
+                let itemTitle: string;
+
+                switch (item.type) {
+                  case "announcement":
+                    itemId = item.announcementId;
+                    itemTitle = item.title;
+                    break;
+                  case "material":
+                    itemId = item.materialId;
+                    itemTitle = item.title;
+                    break;
+                  case "quiz":
+                    itemId = item.quizId;
+                    itemTitle = item.quizTitle;
+                    break;
+                  case "discussion":
+                    itemId = item.discussionId;
+                    itemTitle = item.title;
+                    break;
+                  default:
+                    itemId = index;
+                    itemTitle = "Untitled";
+                }
+
+                return (
+                  <ClassworkCard
+                    key={`${item.type}-${itemId}`}
+                    id={itemId}
+                    title={itemTitle}
+                    type={item.type}
+                    createdAt={
+                      item.createdAt
+                        ? new Date(item.createdAt).toLocaleDateString()
+                        : "Unknown date"
+                    }
+                    onPress={(id) => router.push("/auth")}
+                  />
+                );
+              })
+            )}
           </View>
         </ScrollView>
       </View>
@@ -184,7 +238,7 @@ const styles = StyleSheet.create({
   },
 
   description: {
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 22,
     color: colors.subtext,
   },
