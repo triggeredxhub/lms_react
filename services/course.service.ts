@@ -17,12 +17,11 @@ export async function getCourseClasswork(
     {},
     true,
   );
-  console.log("Classwork response:", response);
 
   return normalizeCourseFeed(response);
 }
 
-export async function getCourseList(): Promise<CoursesResponse[]> {
+export async function getCourseList(): Promise<CoursesResponse> {
   const response = await api.get("/course/student-courses", {}, true);
   return response;
 }

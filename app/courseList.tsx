@@ -1,5 +1,6 @@
 import CourseProgressCard from "@/components/ui/CourseProgressCard";
-import { api } from "@/lib/api";
+import { Course } from "@/models/course/Course.model";
+import { getCourseList } from "@/services/course.service";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -12,28 +13,22 @@ import {
 
 import { SafeAreaView } from "react-native-safe-area-context";
 
-interface course {
-  courseId: number;
-  courseName: string;
-  courseDescription: string | null;
-}
 export default function CourseList() {
   const router = useRouter();
-  const [courses, setCourses] = useState<course[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
 
   const fetchCourses = async () => {
     try {
-      const response = await api.get("/course/student-courses", {}, true);
-      console.log("Courses response:", response);
+      const response = await getCourseList();
       setCourses(response.courses);
-    } catch {
-      console.error("Failed to fetch courses");
+    } catch (error) {
+      console.error("Failed to fetch courses", error);
     }
   };
 
   useEffect(() => {
     fetchCourses();
-  });
+  }, []);
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <ScrollView style={{ flex: 1, padding: 10 }}>

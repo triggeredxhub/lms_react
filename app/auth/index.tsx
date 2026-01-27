@@ -1,5 +1,5 @@
 import { AlertMessage } from "@/components/alerts/AlertMessage";
-import { API_CONFIG, TIMING } from "@/constants/api";
+import { TIMING } from "@/constants/api";
 import colors from "@/constants/colors";
 import {
   BORDER_RADIUS,
@@ -7,7 +7,7 @@ import {
   INPUT_HEIGHT,
   SPACING,
 } from "@/constants/ui";
-import { api } from "@/lib/api";
+import { login } from "@/services/auth.service";
 import { Ionicons } from "@expo/vector-icons";
 // Google Sign-In requires native modules - comment out for Expo Go
 // To enable: Run `npx expo prebuild` or create a development build with EAS
@@ -94,24 +94,18 @@ export default function LoginScreen() {
   }, [params?.email, params?.password]);
 
   const handleLogin = async () => {
-    if (!validateForm()) return;
-    if (loading) return;
+    if (!validateForm() || loading) return;
 
     setLoading(true);
     try {
-      const res = await api.post(API_CONFIG.ENDPOINTS.SIGNINEMS, formData);
-      //console.log("Login response:", res);
+      const res = await login(formData.email, formData.password);
+
       try {
         await SecureStore.setItemAsync("auth_token", res.token);
-        if (res.user) {
-          await SecureStore.setItemAsync("user", JSON.stringify(res.user));
-        }
-      } catch (error) {
-        // Fallback to AsyncStorage if SecureStore fails
+        await SecureStore.setItemAsync("user", JSON.stringify(res.user));
+      } catch {
         await AsyncStorage.setItem("auth_token", res.token);
-        if (res.user) {
-          await AsyncStorage.setItem("user", JSON.stringify(res.user));
-        }
+        await AsyncStorage.setItem("user", JSON.stringify(res.user));
       }
 
       setAlert({
@@ -119,6 +113,7 @@ export default function LoginScreen() {
         type: "success",
         message: "Login successful!",
       });
+
       setTimeout(
         () => router.replace("/courseList"),
         TIMING.SUCCESS_REDIRECT_DELAY,

@@ -40,6 +40,16 @@ export interface DiscussionFeedItem extends BaseCourseFeedItem {
   content: string;
 }
 
+export interface AssignmentFeedItem extends BaseCourseFeedItem {
+  type: "assignment";
+  assignmentId: number;
+  courseId: number;
+  title: string;
+  description: string | null;
+  dueDate: string;
+  max_score: number;
+}
+
 // UNION (this is what you use in screens)
 export type CourseFeedItem =
   | AnnouncementFeedItem
