@@ -15,6 +15,7 @@ const colors = {
   // Text colors
   text: "#251e1d",
   textSecondary: "#666",
+  textTertiary: "#999",
   textLight: "#888",
   textMuted: "#999",
   textError: "red",
@@ -36,6 +37,7 @@ const colors = {
   tileSecondaryText: "#0c0c0d",
 
   // Accent
+  primary: "#323276",
   purple: "#323276",
   purpleLight: "#7B2FF7",
   indigo: "#5C6BC0",

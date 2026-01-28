@@ -18,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function CourseList() {
   const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
+  const [hasError, setHasError] = useState(false);
 
   const clearStorageAndRedirect = async () => {
     console.log("Clearing storage due to auth error...");
@@ -28,22 +29,24 @@ export default function CourseList() {
       await AsyncStorage.removeItem("auth_token");
       await AsyncStorage.removeItem("user");
     }
-    // Use replace with href to force re-check
-    router.replace("/auth");
+    // Navigate to error page with smooth transition
+    router.replace("/auth-error");
   };
 
   const fetchCourses = async () => {
     try {
       const response = await getCourseList();
       setCourses(response.courses);
+      setHasError(false);
     } catch (error: any) {
       console.error("Failed to fetch courses", error);
 
-      // If auth is invalid, clear storage and redirect to login
+      // If auth is invalid, clear storage and show error page
       if (
         error?.message?.includes("AUTH_INVALID") ||
         error?.message?.includes("User ID is required")
       ) {
+        setHasError(true);
         await clearStorageAndRedirect();
       }
       // Don't redirect for other errors to avoid infinite loop
@@ -53,6 +56,12 @@ export default function CourseList() {
   useEffect(() => {
     fetchCourses();
   }, []);
+
+  // Don't render anything if there's an auth error (transitioning to error page)
+  if (hasError) {
+    return null;
+  }
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <ScrollView style={{ flex: 1, padding: 10 }}>
