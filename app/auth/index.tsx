@@ -2,10 +2,10 @@ import { AlertMessage } from "@/components/alerts/AlertMessage";
 import { TIMING } from "@/constants/api";
 import colors from "@/constants/colors";
 import {
-  BORDER_RADIUS,
-  FONT_SIZE,
-  INPUT_HEIGHT,
-  SPACING,
+    BORDER_RADIUS,
+    FONT_SIZE,
+    INPUT_HEIGHT,
+    SPACING,
 } from "@/constants/ui";
 import { login } from "@/services/auth.service";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,16 +17,16 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -115,7 +115,7 @@ export default function LoginScreen() {
       });
 
       setTimeout(
-        () => router.replace("/courseList"),
+        () => router.replace("/(drawer)/courseList"),
         TIMING.SUCCESS_REDIRECT_DELAY,
       );
     } catch (error: any) {

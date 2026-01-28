@@ -4,16 +4,15 @@ import { getCourseList } from "@/services/course.service";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function CourseList() {
   const router = useRouter();
@@ -63,28 +62,26 @@ export default function CourseList() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <ScrollView style={{ flex: 1, padding: 10 }}>
-        <View style={styles.header}>
-          <Text style={styles.title}>My Courses</Text>
-          <Text>Welcome back! Name</Text>
-        </View>
+    <ScrollView style={{ flex: 1, padding: 10 }}>
+      <View style={styles.header}>
+        <Text style={styles.title}>My Courses</Text>
+        <Text>Welcome back! Name</Text>
+      </View>
 
-        {courses.map((course) => (
-          <TouchableOpacity
-            key={course.courseId}
-            onPress={() =>
-              router.push({
-                pathname: "/course/tabs/overview",
-                params: { courseId: String(course.courseId) },
-              })
-            }
-          >
-            <CourseProgressCard title={course.courseName} progress={45} />
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </SafeAreaView>
+      {courses.map((course) => (
+        <TouchableOpacity
+          key={course.courseId}
+          onPress={() =>
+            router.push({
+              pathname: "/(drawer)/course/tabs/overview",
+              params: { courseId: String(course.courseId) },
+            })
+          }
+        >
+          <CourseProgressCard title={course.courseName} progress={45} />
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
   );
 }
 
