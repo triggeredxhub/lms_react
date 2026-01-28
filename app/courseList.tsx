@@ -11,18 +11,42 @@ import {
   View,
 } from "react-native";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function CourseList() {
   const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
 
+  const clearStorageAndRedirect = async () => {
+    console.log("Clearing storage due to auth error...");
+    try {
+      await SecureStore.deleteItemAsync("auth_token");
+      await SecureStore.deleteItemAsync("user");
+    } catch {
+      await AsyncStorage.removeItem("auth_token");
+      await AsyncStorage.removeItem("user");
+    }
+    // Use replace with href to force re-check
+    router.replace("/auth");
+  };
+
   const fetchCourses = async () => {
     try {
       const response = await getCourseList();
       setCourses(response.courses);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to fetch courses", error);
+
+      // If auth is invalid, clear storage and redirect to login
+      if (
+        error?.message?.includes("AUTH_INVALID") ||
+        error?.message?.includes("User ID is required")
+      ) {
+        await clearStorageAndRedirect();
+      }
+      // Don't redirect for other errors to avoid infinite loop
     }
   };
 

@@ -1,6 +1,6 @@
-import * as SecureStore from "expo-secure-store";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_CONFIG } from "@/constants/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 
 const BASE_URL = API_CONFIG.BASE_URL;
 
@@ -37,16 +37,33 @@ function handleApiError(res: Response, responseData: any) {
 async function getAuthHeader(auth: boolean) {
   if (!auth) return {};
   let token;
+  let userId;
   try {
     token = await SecureStore.getItemAsync("auth_token");
+    const userStr = await SecureStore.getItemAsync("user");
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      userId = user.userId;
+    }
   } catch (error) {
     // Fallback to AsyncStorage if SecureStore fails (e.g., in Expo Go)
     token = await AsyncStorage.getItem("auth_token");
+    const userStr = await AsyncStorage.getItem("user");
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      userId = user.userId;
+    }
   }
   if (!token) {
-    throw new Error("No token found, please log in.");
+    throw new Error("AUTH_INVALID");
   }
-  return { Authorization: `Bearer ${token}` };
+  if (!userId) {
+    throw new Error("AUTH_INVALID");
+  }
+  return {
+    Authorization: `Bearer ${token}`,
+    "X-User-Id": String(userId),
+  };
 }
 
 export const api = {
@@ -56,7 +73,7 @@ export const api = {
       "Content-Type": "application/json",
       ...(options.headers as Record<string, string>),
       ...Object.fromEntries(
-        Object.entries(authHeader).filter(([_, value]) => value !== undefined)
+        Object.entries(authHeader).filter(([_, value]) => value !== undefined),
       ),
     };
 
@@ -67,16 +84,13 @@ export const api = {
       const responseData = await safeJsonParse(res);
 
       if (!res.ok) {
-        // Supabase sometimes returns a 500 with a message like
-        // "Cannot coerce the result to a single JSON object" when a
-        // `.single()` call had no matching rows. Treat that as "no data"
-        // instead of surfacing a fatal API error to the UI.
         const backendMessage =
           responseData?.message || responseData?.error || res.statusText || "";
 
-        if (typeof backendMessage === "string" && /coerce the result to a single JSON object/i.test(backendMessage)) {
-          // Don't log this particular server-side coercion error — it is expected
-          // when the DB row doesn't exist and would otherwise create a noisy dev toast.
+        if (
+          typeof backendMessage === "string" &&
+          /coerce the result to a single JSON object/i.test(backendMessage)
+        ) {
           return null;
         }
 
@@ -99,14 +113,14 @@ export const api = {
     endpoint: string,
     body: any,
     options: RequestInit = {},
-    auth = false
+    auth = false,
   ) => {
     const authHeader = await getAuthHeader(auth);
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       ...(options.headers as Record<string, string>),
       ...Object.fromEntries(
-        Object.entries(authHeader).filter(([_, value]) => value !== undefined)
+        Object.entries(authHeader).filter(([_, value]) => value !== undefined),
       ),
     };
 
@@ -129,14 +143,14 @@ export const api = {
     endpoint: string,
     body: any,
     options: RequestInit = {},
-    auth = false
+    auth = false,
   ) => {
     const authHeader = await getAuthHeader(auth);
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       ...(options.headers as Record<string, string>),
       ...Object.fromEntries(
-        Object.entries(authHeader).filter(([_, value]) => value !== undefined)
+        Object.entries(authHeader).filter(([_, value]) => value !== undefined),
       ),
     };
 
@@ -159,14 +173,14 @@ export const api = {
     endpoint: string,
     body: any,
     options: RequestInit = {},
-    auth = false
+    auth = false,
   ) => {
     const authHeader = await getAuthHeader(auth);
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       ...(options.headers as Record<string, string>),
       ...Object.fromEntries(
-        Object.entries(authHeader).filter(([_, value]) => value !== undefined)
+        Object.entries(authHeader).filter(([_, value]) => value !== undefined),
       ),
     };
 
@@ -191,7 +205,7 @@ export const api = {
       "Content-Type": "application/json",
       ...(options.headers as Record<string, string>),
       ...Object.fromEntries(
-        Object.entries(authHeader).filter(([_, value]) => value !== undefined)
+        Object.entries(authHeader).filter(([_, value]) => value !== undefined),
       ),
     };
 
@@ -214,13 +228,13 @@ export const api = {
     endpoint: string,
     formData: FormData,
     options: RequestInit = {},
-    auth = false
+    auth = false,
   ) => {
     const authHeader = await getAuthHeader(auth);
     const headers: Record<string, string> = {
       ...(options.headers as Record<string, string>),
       ...Object.fromEntries(
-        Object.entries(authHeader).filter(([_, value]) => value !== undefined)
+        Object.entries(authHeader).filter(([_, value]) => value !== undefined),
       ),
     };
 
@@ -233,7 +247,12 @@ export const api = {
     const responseData = await safeJsonParse(res);
 
     if (!res.ok) {
-      console.error('API upload error:', res.status, `${BASE_URL}${endpoint}`, responseData);
+      console.error(
+        "API upload error:",
+        res.status,
+        `${BASE_URL}${endpoint}`,
+        responseData,
+      );
       handleApiError(res, responseData);
     }
 
@@ -243,7 +262,7 @@ export const api = {
     endpoint: string,
     formData: FormData,
     options: RequestInit = {},
-    auth = false
+    auth = false,
   ) => {
     const authHeader = await getAuthHeader(auth);
 
@@ -251,7 +270,7 @@ export const api = {
     const headers: Record<string, string> = {
       ...(options.headers as Record<string, string>),
       ...Object.fromEntries(
-        Object.entries(authHeader).filter(([_, value]) => value !== undefined)
+        Object.entries(authHeader).filter(([_, value]) => value !== undefined),
       ),
     };
 
