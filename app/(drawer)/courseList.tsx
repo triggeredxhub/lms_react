@@ -1,12 +1,14 @@
+import SkeletonLoader from "@/components/skeleton/SkeletonLoader";
 import CourseProgressCard from "@/components/ui/CourseProgressCard";
 import { Course } from "@/models/course/Course.model";
 import { getCourseList } from "@/services/course.service";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
+  RefreshControl,
   ScrollView,
   StyleSheet,
-  TouchableOpacity
+  TouchableOpacity,
 } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -16,6 +18,8 @@ export default function CourseList() {
   const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
   const [hasError, setHasError] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const clearStorageAndRedirect = async () => {
     console.log("Clearing storage due to auth error...");
@@ -47,7 +51,15 @@ export default function CourseList() {
         await clearStorageAndRedirect();
       }
       // Don't redirect for other errors to avoid infinite loop
+    } finally {
+      setRefreshing(false);
+      setLoading(false);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchCourses();
   };
 
   useEffect(() => {
@@ -60,20 +72,29 @@ export default function CourseList() {
   }
 
   return (
-    <ScrollView style={{ flex: 1, padding: 10 }}>
-      {courses.map((course) => (
-        <TouchableOpacity
-          key={course.courseId}
-          onPress={() =>
-            router.push({
-              pathname: "/(drawer)/course/tabs/overview",
-              params: { courseId: String(course.courseId) },
-            })
-          }
-        >
-          <CourseProgressCard title={course.courseName} progress={45} />
-        </TouchableOpacity>
-      ))}
+    <ScrollView
+      style={{ flex: 1, padding: 10 }}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      {loading ? (
+        <SkeletonLoader count={courses.length || 3} height={140} />
+      ) : (
+        courses.map((course) => (
+          <TouchableOpacity
+            key={course.courseId}
+            onPress={() =>
+              router.push({
+                pathname: "/(drawer)/course/tabs/overview",
+                params: { courseId: String(course.courseId) },
+              })
+            }
+          >
+            <CourseProgressCard title={course.courseName} progress={45} />
+          </TouchableOpacity>
+        ))
+      )}
     </ScrollView>
   );
 }

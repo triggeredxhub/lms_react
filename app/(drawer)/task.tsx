@@ -1,19 +1,50 @@
+import SkeletonListItem from "@/components/skeleton/SkeletonListItem";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
 
 export default function TaskList() {
   const router = useRouter();
   const [tasks, setTasks] = useState<any[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    // Simulate API call
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
+
+  // Simulate initial loading
+  useState(() => {
+    setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+  });
 
   return (
-    <ScrollView style={{ flex: 1, padding: 10 }}>
+    <ScrollView
+      style={{ flex: 1, padding: 10 }}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
       <View style={styles.header}>
         <Text style={styles.title}>Tasks</Text>
         <Text style={styles.subtitle}>Manage your assignments and tasks</Text>
       </View>
 
-      {tasks.length === 0 ? (
+      {loading ? (
+        <SkeletonListItem count={5} />
+      ) : tasks.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No tasks available</Text>
         </View>
