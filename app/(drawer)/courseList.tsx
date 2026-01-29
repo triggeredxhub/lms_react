@@ -4,11 +4,9 @@ import { getCourseList } from "@/services/course.service";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity
 } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -63,11 +61,6 @@ export default function CourseList() {
 
   return (
     <ScrollView style={{ flex: 1, padding: 10 }}>
-      <View style={styles.header}>
-        <Text style={styles.title}>My Courses</Text>
-        <Text>Welcome back! Name</Text>
-      </View>
-
       {courses.map((course) => (
         <TouchableOpacity
           key={course.courseId}

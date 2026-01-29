@@ -59,9 +59,9 @@ function CustomDrawerContent(props: any) {
 
       <View style={styles.menuSection}>
         <DrawerItem
-          label="My Courses"
+          label="Home"
           icon={({ color, size }) => (
-            <Ionicons name="book-outline" size={size} color={color} />
+            <Ionicons name="home-outline" size={size} color={color} />
           )}
           onPress={() => props.navigation.navigate("courseList")}
           labelStyle={styles.drawerLabel}
@@ -69,13 +69,31 @@ function CustomDrawerContent(props: any) {
           activeTintColor={colors.primary}
         />
         <DrawerItem
-          label="Profile"
+          label="Announcements"
           icon={({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
+            <Ionicons name="megaphone-outline" size={size} color={color} />
           )}
-          onPress={() => {
-            // Add profile navigation when implemented
-          }}
+          onPress={() => props.navigation.navigate("announcement")}
+          labelStyle={styles.drawerLabel}
+          activeBackgroundColor={colors.backgroundLight}
+          activeTintColor={colors.primary}
+        />
+        <DrawerItem
+          label="Tasks"
+          icon={({ color, size }) => (
+            <Ionicons name="checkbox-outline" size={size} color={color} />
+          )}
+          onPress={() => props.navigation.navigate("task")}
+          labelStyle={styles.drawerLabel}
+          activeBackgroundColor={colors.backgroundLight}
+          activeTintColor={colors.primary}
+        />
+        <DrawerItem
+          label="Quizzes"
+          icon={({ color, size }) => (
+            <Ionicons name="help-circle-outline" size={size} color={color} />
+          )}
+          onPress={() => props.navigation.navigate("quiz")}
           labelStyle={styles.drawerLabel}
           activeBackgroundColor={colors.backgroundLight}
           activeTintColor={colors.primary}
@@ -85,9 +103,7 @@ function CustomDrawerContent(props: any) {
           icon={({ color, size }) => (
             <Ionicons name="settings-outline" size={size} color={color} />
           )}
-          onPress={() => {
-            // Add settings navigation when implemented
-          }}
+          onPress={() => props.navigation.navigate("settings")}
           labelStyle={styles.drawerLabel}
           activeBackgroundColor={colors.backgroundLight}
           activeTintColor={colors.primary}
@@ -132,8 +148,40 @@ export default function DrawerLayout() {
       <Drawer.Screen
         name="courseList"
         options={{
-          drawerLabel: "My Courses",
+          drawerLabel: "Home",
           title: "My Courses",
+          headerShown: true,
+        }}
+      />
+      <Drawer.Screen
+        name="announcement"
+        options={{
+          drawerLabel: "Announcements",
+          title: "Announcements",
+          headerShown: true,
+        }}
+      />
+      <Drawer.Screen
+        name="task"
+        options={{
+          drawerLabel: "Tasks",
+          title: "Tasks",
+          headerShown: true,
+        }}
+      />
+      <Drawer.Screen
+        name="quiz"
+        options={{
+          drawerLabel: "Quizzes",
+          title: "Quizzes",
+          headerShown: true,
+        }}
+      />
+      <Drawer.Screen
+        name="settings"
+        options={{
+          drawerLabel: "Settings",
+          title: "Settings",
           headerShown: true,
         }}
       />
