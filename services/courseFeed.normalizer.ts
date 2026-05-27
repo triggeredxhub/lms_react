@@ -1,7 +1,24 @@
 import { CourseFeedItem } from "@/models/course/CourseFeed.model";
 
-export function normalizeCourseFeed(data: any[]): CourseFeedItem[] {
-  return data.map((item) => {
+function toFeedArray(data: unknown): any[] {
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (data && typeof data === "object") {
+    const values = Object.values(data as Record<string, unknown>);
+    const firstArray = values.find(Array.isArray);
+
+    if (Array.isArray(firstArray)) {
+      return firstArray as any[];
+    }
+  }
+
+  return [];
+}
+
+export function normalizeCourseFeed(data: unknown): CourseFeedItem[] {
+  return toFeedArray(data).map((item) => {
     if (item.announcementId)
       return { ...item, id: item.announcementId, type: "announcement" };
     if (item.materialId)

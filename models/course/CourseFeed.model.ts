@@ -55,4 +55,5 @@ export type CourseFeedItem =
   | AnnouncementFeedItem
   | MaterialFeedItem
   | QuizFeedItem
-  | DiscussionFeedItem;
+  | DiscussionFeedItem
+  | AssignmentFeedItem;

@@ -1,15 +1,32 @@
+import { useEffect } from "react";
+import { ActivityIndicator, View } from "react-native";
+
 import { Stack } from "expo-router";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+
+import { useAuthStore } from "@/stores/auth.store";
 
 export default function RootLayout() {
-  return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="auth" options={{ headerShown: false }} />
-        <Stack.Screen name="auth-error" options={{ headerShown: false }} />
-        <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
-      </Stack>
-    </GestureHandlerRootView>
-  );
+  const hydrate = useAuthStore((state) => state.hydrate);
+  const isHydrated = useAuthStore((state) => state.isHydrated);
+
+  useEffect(() => {
+    void hydrate();
+  }, [hydrate]);
+
+  if (!isHydrated) {
+    return (
+      <View
+        style={{
+          alignItems: "center",
+          backgroundColor: "#f4f7fb",
+          flex: 1,
+          justifyContent: "center",
+        }}
+      >
+        <ActivityIndicator color="#1849d6" size="large" />
+      </View>
+    );
+  }
+
+  return <Stack screenOptions={{ headerShown: false }} />;
 }
