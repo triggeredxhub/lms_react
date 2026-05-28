@@ -2,34 +2,71 @@ import { api } from "@/lib/api";
 import { CommentItem, CommentTargetType } from "@/models/comment/Comment.model";
 
 function normalizeComments(response: unknown): CommentItem[] {
-  if (Array.isArray(response)) {
-    return response as CommentItem[];
-  }
+  const source = Array.isArray(response)
+    ? response
+    : response && typeof response === "object"
+      ? ((Object.values(response as Record<string, unknown>).find(
+          Array.isArray,
+        ) as unknown[] | undefined) ?? [])
+      : [];
 
-  if (response && typeof response === "object") {
-    const values = Object.values(response as Record<string, unknown>);
-    const firstArray = values.find(Array.isArray);
+  const comments: CommentItem[] = [];
 
-    if (Array.isArray(firstArray)) {
-      return firstArray as CommentItem[];
+  for (const item of source) {
+    if (!item || typeof item !== "object") {
+      continue;
     }
+
+    const record = item as Record<string, unknown>;
+    const id = record.id ?? record.commentId;
+
+    if (typeof id !== "string" && typeof id !== "number") {
+      continue;
+    }
+
+    comments.push({
+      body: typeof record.body === "string" ? record.body : null,
+      comment: typeof record.body === "string" ? record.body : null,
+      commentId: id,
+      content: typeof record.body === "string" ? record.body : null,
+      createdAt: typeof record.createdAt === "string" ? record.createdAt : null,
+      firstName:
+        typeof record.firstName === "string" ? record.firstName : undefined,
+      id,
+      lastName:
+        typeof record.lastName === "string" ? record.lastName : undefined,
+      parentId:
+        typeof record.parentId === "string" ||
+        typeof record.parentId === "number"
+          ? record.parentId
+          : null,
+      targetId:
+        typeof record.targetId === "string" ||
+        typeof record.targetId === "number"
+          ? record.targetId
+          : undefined,
+      targetType:
+        typeof record.targetType === "string"
+          ? (record.targetType as CommentTargetType)
+          : undefined,
+      text: typeof record.body === "string" ? record.body : null,
+      updatedAt: typeof record.updatedAt === "string" ? record.updatedAt : null,
+      userId:
+        typeof record.userId === "string" || typeof record.userId === "number"
+          ? record.userId
+          : undefined,
+    });
   }
 
-  return [];
+  return comments;
 }
 
-function getCommentListEndpoint(type: CommentTargetType, targetId: string) {
+function normalizeTargetType(type: CommentTargetType): CommentTargetType {
   switch (type) {
-    case "announcement":
-      return `/comment/get/announcementId/${targetId}/list`;
-    case "assignment":
-      return `/comment/get/assignmentId/${targetId}/list`;
     case "discussion":
-      return `/comment/get/${targetId}/list`;
-    case "material":
-      return `/comment/get/materialId/${targetId}/list`;
-    case "quiz":
-      return `/comment/get/quizId/${targetId}/list`;
+      return "announcement";
+    default:
+      return type;
   }
 }
 
@@ -38,8 +75,13 @@ export async function getCommentsByTarget(
   targetId: string,
 ): Promise<CommentItem[]> {
   const response = await api.get(
-    getCommentListEndpoint(type, targetId),
-    {},
+    "/comments",
+    {
+      limit: 100,
+      page: 1,
+      targetId,
+      targetType: normalizeTargetType(type),
+    },
     true,
   );
   return normalizeComments(response);

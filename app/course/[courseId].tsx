@@ -39,10 +39,14 @@ export default function CourseDetailScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!courseId || !user || status !== "authenticated") {
+    const currentUser = user;
+
+    if (!courseId || !currentUser || status !== "authenticated") {
       setLoading(false);
       return;
     }
+
+    const currentUserRole = currentUser.role;
 
     let isActive = true;
 
@@ -53,7 +57,7 @@ export default function CourseDetailScreen() {
       try {
         const [course, feed] = await Promise.all([
           getCourse(courseId),
-          getCourseClassworkForRole(courseId, user.role),
+          getCourseClassworkForRole(courseId, currentUserRole),
         ]);
 
         if (!isActive) {

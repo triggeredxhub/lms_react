@@ -1,13 +1,14 @@
 // Shared base
 export interface BaseCourseFeedItem {
-  courseId: number;
+  courseId: string | number;
   createdAt: string;
+  updatedAt?: string | null;
 }
 
 // Announcement
 export interface AnnouncementFeedItem extends BaseCourseFeedItem {
   type: "announcement";
-  announcementId: number;
+  announcementId: string | number;
   title: string;
   content: string | null;
 }
@@ -15,7 +16,7 @@ export interface AnnouncementFeedItem extends BaseCourseFeedItem {
 // Material
 export interface MaterialFeedItem extends BaseCourseFeedItem {
   type: "material";
-  materialId: number;
+  materialId: string | number;
   title: string;
   description: string | null;
   filePath: string;
@@ -24,26 +25,25 @@ export interface MaterialFeedItem extends BaseCourseFeedItem {
 // Quiz
 export interface QuizFeedItem extends BaseCourseFeedItem {
   type: "quiz";
-  quizId: number;
+  quizId: string | number;
   quizTitle: string;
   description: string | null;
   due_date: string;
   timeLimit: number;
-  updatedAt: string;
 }
 
 // Discussion
 export interface DiscussionFeedItem extends BaseCourseFeedItem {
   type: "discussion";
-  discussionId: number;
+  discussionId: string | number;
   title: string;
   content: string;
 }
 
 export interface AssignmentFeedItem extends BaseCourseFeedItem {
   type: "assignment";
-  assignmentId: number;
-  courseId: number;
+  assignmentId: string | number;
+  courseId: string | number;
   title: string;
   description: string | null;
   dueDate: string;

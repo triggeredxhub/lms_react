@@ -1,291 +1,146 @@
-import { API_CONFIG } from "@/constants/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 
-const BASE_URL = API_CONFIG.BASE_URL;
+import { API_CONFIG } from "@/lib/constants/api";
 
-// Helper: Safe JSON parsing for all methods
-async function safeJsonParse(res: Response) {
-  const contentType = res.headers.get("content-type");
-  const responseText = await res.text();
+const TOKEN_KEY = "auth_token";
 
-  try {
-    return contentType?.includes("application/json")
-      ? JSON.parse(responseText)
-      : { message: responseText };
-  } catch (e) {
-    return { message: responseText };
+type QueryParams = Record<string, string | number | boolean | null | undefined>;
+
+class ApiError extends Error {
+  status: number;
+  body: unknown;
+
+  constructor(message: string, status: number, body: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.body = body;
   }
 }
 
-// Helper: Handle errors consistently
-function handleApiError(res: Response, responseData: any) {
-  const backendMessage =
-    responseData?.message || responseData?.error || res.statusText;
+function buildUrl(path: string, params?: QueryParams) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const url = new URL(`${API_CONFIG.BASE_URL}${normalizedPath}`);
 
-  if (res.status === 401 || /token.*expired|invalid/i.test(backendMessage)) {
-    throw new Error("AUTH_TOKEN_EXPIRED");
+  if (params) {
+    for (const [key, value] of Object.entries(params)) {
+      if (value === null || value === undefined) {
+        continue;
+      }
+
+      url.searchParams.set(key, String(value));
+    }
   }
 
-  if (res.status === 429) {
-    throw new Error("Too many requests. Please wait and try again.");
-  }
-
-  throw new Error(backendMessage);
+  return url.toString();
 }
 
-async function getAuthHeader(auth: boolean) {
-  if (!auth) return {};
-  let token;
-  let userId;
+async function getStoredToken() {
   try {
-    token = await SecureStore.getItemAsync("auth_token");
-    const userStr = await SecureStore.getItemAsync("user");
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      userId = user.userId;
-    }
-  } catch (error) {
-    // Fallback to AsyncStorage if SecureStore fails (e.g., in Expo Go)
-    token = await AsyncStorage.getItem("auth_token");
-    const userStr = await AsyncStorage.getItem("user");
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      userId = user.userId;
-    }
+    return await SecureStore.getItemAsync(TOKEN_KEY);
+  } catch {
+    return AsyncStorage.getItem(TOKEN_KEY);
   }
-  if (!token) {
-    throw new Error("AUTH_INVALID");
-  }
-  if (!userId) {
-    throw new Error("AUTH_INVALID");
-  }
-  return {
-    Authorization: `Bearer ${token}`,
-    "X-User-Id": String(userId),
+}
+
+async function createHeaders(requiresAuth = false) {
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
   };
+
+  if (!requiresAuth) {
+    return headers;
+  }
+
+  const token = await getStoredToken();
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  return headers;
+}
+
+async function parseResponse(response: Response) {
+  const text = await response.text();
+
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function getErrorMessage(body: unknown, fallback: string) {
+  if (body && typeof body === "object") {
+    const maybeMessage = (body as Record<string, unknown>).message;
+
+    if (typeof maybeMessage === "string" && maybeMessage.length > 0) {
+      return maybeMessage;
+    }
+  }
+
+  return fallback;
+}
+
+async function request<T>(
+  method: "GET" | "POST",
+  path: string,
+  body?: unknown,
+  requiresAuth = false,
+  params?: QueryParams,
+): Promise<T> {
+  const requestUrl = buildUrl(path, params);
+  let response: Response;
+
+  try {
+    response = await fetch(requestUrl, {
+      body: body === undefined ? undefined : JSON.stringify(body),
+      headers: await createHeaders(requiresAuth),
+      method,
+    });
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error && error.message
+        ? error.message
+        : "Network request failed";
+
+    throw new Error(
+      `${errorMessage}. Could not reach API at ${requestUrl}. Check EXPO_PUBLIC_API_BASE_URL and backend availability.`,
+    );
+  }
+
+  const parsedBody = await parseResponse(response);
+
+  if (!response.ok) {
+    throw new ApiError(
+      getErrorMessage(
+        parsedBody,
+        `Request failed with status ${response.status}`,
+      ),
+      response.status,
+      parsedBody,
+    );
+  }
+
+  return parsedBody as T;
 }
 
 export const api = {
-  get: async (endpoint: string, options: RequestInit = {}, auth = false) => {
-    const authHeader = await getAuthHeader(auth);
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      ...(options.headers as Record<string, string>),
-      ...Object.fromEntries(
-        Object.entries(authHeader).filter(([_, value]) => value !== undefined),
-      ),
-    };
-
-    const url = `${BASE_URL}${endpoint}`;
-
-    try {
-      const res = await fetch(url, { ...options, headers });
-      const responseData = await safeJsonParse(res);
-
-      if (!res.ok) {
-        const backendMessage =
-          responseData?.message || responseData?.error || res.statusText || "";
-
-        if (
-          typeof backendMessage === "string" &&
-          /coerce the result to a single JSON object/i.test(backendMessage)
-        ) {
-          return null;
-        }
-
-        // Only log non-404 errors (404s are often expected with fallbacks)
-        if (res.status !== 404) {
-          console.error("❌ API Error:", res.status, url);
-        }
-
-        handleApiError(res, responseData);
-      }
-
-      return responseData;
-    } catch (error: any) {
-      // Error already thrown by handleApiError, no need to log again
-      throw error;
-    }
+  get<T = unknown>(
+    path: string,
+    params: QueryParams = {},
+    requiresAuth = false,
+  ) {
+    return request<T>("GET", path, undefined, requiresAuth, params);
   },
-
-  post: async (
-    endpoint: string,
-    body: any,
-    options: RequestInit = {},
-    auth = false,
-  ) => {
-    const authHeader = await getAuthHeader(auth);
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      ...(options.headers as Record<string, string>),
-      ...Object.fromEntries(
-        Object.entries(authHeader).filter(([_, value]) => value !== undefined),
-      ),
-    };
-
-    const res = await fetch(`${BASE_URL}${endpoint}`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-    });
-
-    const responseData = await safeJsonParse(res);
-
-    if (!res.ok) {
-      handleApiError(res, responseData);
-    }
-
-    return responseData;
-  },
-
-  put: async (
-    endpoint: string,
-    body: any,
-    options: RequestInit = {},
-    auth = false,
-  ) => {
-    const authHeader = await getAuthHeader(auth);
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      ...(options.headers as Record<string, string>),
-      ...Object.fromEntries(
-        Object.entries(authHeader).filter(([_, value]) => value !== undefined),
-      ),
-    };
-
-    const res = await fetch(`${BASE_URL}${endpoint}`, {
-      method: "PUT",
-      headers,
-      body: JSON.stringify(body),
-    });
-
-    const responseData = await safeJsonParse(res);
-
-    if (!res.ok) {
-      handleApiError(res, responseData);
-    }
-
-    return responseData;
-  },
-
-  patch: async (
-    endpoint: string,
-    body: any,
-    options: RequestInit = {},
-    auth = false,
-  ) => {
-    const authHeader = await getAuthHeader(auth);
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      ...(options.headers as Record<string, string>),
-      ...Object.fromEntries(
-        Object.entries(authHeader).filter(([_, value]) => value !== undefined),
-      ),
-    };
-
-    const res = await fetch(`${BASE_URL}${endpoint}`, {
-      method: "PATCH",
-      headers,
-      body: JSON.stringify(body),
-    });
-
-    const responseData = await safeJsonParse(res);
-
-    if (!res.ok) {
-      handleApiError(res, responseData);
-    }
-
-    return responseData;
-  },
-
-  delete: async (endpoint: string, options: RequestInit = {}, auth = false) => {
-    const authHeader = await getAuthHeader(auth);
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      ...(options.headers as Record<string, string>),
-      ...Object.fromEntries(
-        Object.entries(authHeader).filter(([_, value]) => value !== undefined),
-      ),
-    };
-
-    const res = await fetch(`${BASE_URL}${endpoint}`, {
-      method: "DELETE",
-      headers,
-      ...options,
-    });
-
-    const responseData = await safeJsonParse(res);
-
-    if (!res.ok) {
-      handleApiError(res, responseData);
-    }
-
-    return responseData;
-  },
-
-  upload: async (
-    endpoint: string,
-    formData: FormData,
-    options: RequestInit = {},
-    auth = false,
-  ) => {
-    const authHeader = await getAuthHeader(auth);
-    const headers: Record<string, string> = {
-      ...(options.headers as Record<string, string>),
-      ...Object.fromEntries(
-        Object.entries(authHeader).filter(([_, value]) => value !== undefined),
-      ),
-    };
-
-    const res = await fetch(`${BASE_URL}${endpoint}`, {
-      method: "POST",
-      headers,
-      body: formData,
-    });
-
-    const responseData = await safeJsonParse(res);
-
-    if (!res.ok) {
-      console.error(
-        "API upload error:",
-        res.status,
-        `${BASE_URL}${endpoint}`,
-        responseData,
-      );
-      handleApiError(res, responseData);
-    }
-
-    return responseData;
-  },
-  postForm: async (
-    endpoint: string,
-    formData: FormData,
-    options: RequestInit = {},
-    auth = false,
-  ) => {
-    const authHeader = await getAuthHeader(auth);
-
-    // Merge headers but DO NOT include Content-Type (fetch will set boundary automatically)
-    const headers: Record<string, string> = {
-      ...(options.headers as Record<string, string>),
-      ...Object.fromEntries(
-        Object.entries(authHeader).filter(([_, value]) => value !== undefined),
-      ),
-    };
-
-    const res = await fetch(`${BASE_URL}${endpoint}`, {
-      method: "POST",
-      headers,
-      body: formData,
-    });
-
-    const responseData = await safeJsonParse(res);
-
-    if (!res.ok) {
-      handleApiError(res, responseData);
-    }
-
-    return responseData;
+  post<T = unknown>(path: string, body: unknown = {}, requiresAuth = false) {
+    return request<T>("POST", path, body, requiresAuth);
   },
 };

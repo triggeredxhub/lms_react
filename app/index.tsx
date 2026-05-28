@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 
-import { UserRole } from "@/models/auth/User.model";
+import { Course } from "@/models/course/Course.model";
 import {
   AdminStats,
   AdminStudent,
@@ -22,21 +22,10 @@ import { getCoursesForRole } from "@/services/course.service";
 import { useAuthStore } from "@/stores/auth.store";
 
 type DashboardState = {
-  courses: Array<{
-    courseDescription: string | null;
-    courseId: number;
-    courseName: string;
-    instructorId?: number;
-  }>;
+  courses: Course[];
   stats: AdminStats | null;
   students: AdminStudent[];
 };
-
-const roleOptions: Array<{ label: string; value: UserRole }> = [
-  { label: "Student", value: "student" },
-  { label: "Instructor", value: "instructor" },
-  { label: "Admin", value: "admin" },
-];
 
 const initialDashboardState: DashboardState = {
   courses: [],
@@ -52,7 +41,6 @@ export default function Index() {
   const status = useAuthStore((state) => state.status);
   const user = useAuthStore((state) => state.user);
 
-  const [selectedRole, setSelectedRole] = useState<UserRole>("student");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [dashboard, setDashboard] = useState<DashboardState>(
@@ -63,7 +51,13 @@ export default function Index() {
 
   useEffect(() => {
     clearError();
-  }, [selectedRole, clearError]);
+  }, [clearError]);
+
+  useEffect(() => {
+    if (status === "authenticated" && user?.role === "admin") {
+      router.replace("/admin" as never);
+    }
+  }, [status, user]);
 
   useEffect(() => {
     if (!user) {
@@ -136,7 +130,7 @@ export default function Index() {
   }, [user]);
 
   async function handleLogin() {
-    await signIn(selectedRole, email.trim(), password);
+    await signIn(email.trim(), password);
   }
 
   if (status === "authenticated" && user) {
@@ -242,41 +236,20 @@ export default function Index() {
     );
   }
 
+  // Login screen behavior:
+  // - What: Collects email/password and triggers automatic role detection from backend.
+  // - Why: Removes manual role selection and prevents incorrect endpoint choice by users.
+  // - How: Call signIn(email, password); store/service resolve source and role for routing.
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.loginContent}>
         <View style={styles.loginCard}>
           <Text style={styles.eyebrow}>Learning Management System</Text>
-          <Text style={styles.heroTitle}>Role-aware sign in</Text>
+          <Text style={styles.heroTitle}>Welcome back</Text>
           <Text style={styles.heroSubtitle}>
-            Student uses the EMS login. Instructor and admin use the HRIS login.
+            Sign in with your LMS account. We will route you automatically based
+            on your profile.
           </Text>
-
-          <View style={styles.roleRow}>
-            {roleOptions.map((option) => {
-              const isSelected = option.value === selectedRole;
-
-              return (
-                <Pressable
-                  key={option.value}
-                  onPress={() => setSelectedRole(option.value)}
-                  style={[
-                    styles.roleChip,
-                    isSelected ? styles.roleChipActive : null,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.roleChipText,
-                      isSelected ? styles.roleChipTextActive : null,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
 
           <View style={styles.formGroup}>
             <Text style={styles.label}>Email</Text>
@@ -486,11 +459,6 @@ const styles = StyleSheet.create({
   },
   roleChipTextActive: {
     color: "#ffffff",
-  },
-  roleRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
   },
   safeArea: {
     backgroundColor: "#edf2f8",

@@ -3,8 +3,8 @@ import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 
 import { AuthSource } from "@/models/auth/LoginResponse.model";
-import { User, UserRole } from "@/models/auth/User.model";
-import { getCurrentUser, loginByRole } from "@/services/auth.service";
+import { User } from "@/models/auth/User.model";
+import { getCurrentUser, loginAuto } from "@/services/auth.service";
 
 type AuthStatus = "anonymous" | "authenticated" | "hydrating";
 
@@ -23,7 +23,7 @@ interface AuthStore {
   user: User | null;
   clearError: () => void;
   hydrate: () => Promise<void>;
-  signIn: (role: UserRole, email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -94,10 +94,6 @@ async function clearSessionStorage() {
   ]);
 }
 
-function toAuthSource(role: UserRole): AuthSource {
-  return role === "student" ? "ems" : "hris";
-}
-
 function toErrorMessage(error: unknown) {
   if (error instanceof Error) {
     return error.message;
@@ -158,13 +154,15 @@ export const useAuthStore = create<AuthStore>((set) => ({
       });
     }
   },
-  signIn: async (role, email, password) => {
+  signIn: async (email, password) => {
     set({ error: null, status: "hydrating" });
 
     try {
-      const response = await loginByRole(role, email, password);
+      const response = await loginAuto(email, password);
       const session: StoredSession = {
-        source: response.source ?? toAuthSource(response.user.role),
+        source:
+          response.source ??
+          (response.user.role === "student" ? "ems" : "hris"),
         token: response.token,
         user: response.user,
       };

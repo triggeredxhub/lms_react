@@ -1,11 +1,14 @@
 export type UserRole = "student" | "instructor" | "admin";
+export type StudentStatus = "regular" | "irregular";
 
 export interface User {
-  userId: number;
+  id?: string | number;
+  userId: string | number;
   firstName: string;
   lastName: string;
   email: string;
   role: UserRole;
-  createdAt: string; // ISO string
-  updatedAt: string; // ISO string
+  studentStatus?: StudentStatus | null;
+  createdAt?: string | null; // ISO string
+  updatedAt?: string | null; // ISO string
 }
