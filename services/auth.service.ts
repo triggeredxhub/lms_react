@@ -1,6 +1,15 @@
 import { api } from "@/lib/api";
 import { AuthSource, LoginResponse } from "@/models/auth/LoginResponse.model";
-import { User, UserRole } from "@/models/auth/User.model";
+import { StudentStatus, User, UserRole } from "@/models/auth/User.model";
+
+export type RegisterInput = {
+  email: string;
+  firstName: string;
+  lastName: string;
+  password: string;
+  role: "student" | "instructor";
+  studentStatus?: StudentStatus | null;
+};
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object"
@@ -120,4 +129,17 @@ export async function loginAuto(
 export async function getCurrentUser(source: AuthSource): Promise<User> {
   void source;
   return api.get("/users/me", {}, true);
+}
+
+export async function registerAccount(input: RegisterInput): Promise<void> {
+  const payload = {
+    email: input.email,
+    firstName: input.firstName,
+    lastName: input.lastName,
+    password: input.password,
+    role: input.role,
+    studentStatus: input.role === "student" ? input.studentStatus : null,
+  };
+
+  await api.post("/auth/register", payload);
 }
