@@ -4,6 +4,13 @@ import { Course } from "@/models/course/Course.model";
 import { CourseFeedItem } from "@/models/course/CourseFeed.model";
 import { CoursesResponse } from "@/models/course/CoursesResponse.model";
 
+export type CreateCourseInput = {
+  code: string;
+  description?: string;
+  instructorId?: string;
+  title: string;
+};
+
 type FeedCollection = {
   announcements: CourseFeedItem[];
   assignments: CourseFeedItem[];
@@ -21,11 +28,21 @@ function pickArray(response: unknown): unknown[] {
   }
 
   const record = response as Record<string, unknown>;
-  const knownListKeys = ["data", "items", "results", "courses", "users"];
+  const knownListKeys = ["items", "data", "results", "courses", "users"];
 
   for (const key of knownListKeys) {
-    if (Array.isArray(record[key])) {
-      return record[key] as unknown[];
+    const value = record[key];
+
+    if (Array.isArray(value)) {
+      return value;
+    }
+
+    if (value && typeof value === "object") {
+      const nestedArray = pickArray(value);
+
+      if (nestedArray.length > 0) {
+        return nestedArray;
+      }
     }
   }
 
@@ -39,6 +56,21 @@ function toIsoString(value: unknown): string {
 
 function toMaybeString(value: unknown): string | null {
   return typeof value === "string" ? value : null;
+}
+
+function resolveCoursePayload(response: unknown): unknown {
+  if (!response || typeof response !== "object") {
+    return response;
+  }
+
+  const record = response as Record<string, unknown>;
+  const data = record.data;
+
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    return data;
+  }
+
+  return response;
 }
 
 function normalizeCourse(item: unknown): Course | null {
@@ -240,7 +272,7 @@ function normalizeCoursesResponse(response: unknown): CoursesResponse {
 
 export async function getCourse(courseId: string): Promise<Course> {
   const response = await api.get(`/courses/${courseId}`, {}, true);
-  const normalized = normalizeCourse(response);
+  const normalized = normalizeCourse(resolveCoursePayload(response));
 
   if (!normalized) {
     throw new Error("Course details are unavailable.");
@@ -262,10 +294,10 @@ export async function getCourseClassworkForRole(
   void role;
 
   const [announcements, assignments, materials, quizzes] = await Promise.all([
-    api.get("/announcements", { courseId, limit: 100, page: 1 }, true),
-    api.get("/assignments", { courseId, limit: 100, page: 1 }, true),
-    api.get("/materials", { courseId, limit: 100, page: 1 }, true),
-    api.get("/quizzes", { courseId, limit: 100, page: 1 }, true),
+    api.get("/announcements", { courseId }, true),
+    api.get("/assignments", { courseId }, true),
+    api.get("/materials", { courseId }, true),
+    api.get("/quizzes", { courseId }, true),
   ]);
 
   return normalizeFeedCollections({
@@ -277,7 +309,8 @@ export async function getCourseClassworkForRole(
 }
 
 export async function getCourseList(): Promise<CoursesResponse> {
-  const response = await api.get("/courses", { limit: 100, page: 1 }, true);
+  const response = await api.get("/courses", {}, true);
+  console.log("[getCourseList] raw /courses response:", response);
   return normalizeCoursesResponse(response);
 }
 
@@ -285,6 +318,25 @@ export async function getCoursesForRole(
   role: UserRole,
 ): Promise<CoursesResponse> {
   void role;
-  const response = await api.get("/courses", { limit: 100, page: 1 }, true);
+  const response = await api.get("/courses", {}, true);
+  console.log("[getCoursesForRole] raw /courses response:", response);
   return normalizeCoursesResponse(response);
+}
+
+export async function createCourse(input: CreateCourseInput): Promise<Course> {
+  const payload = {
+    code: input.code.trim(),
+    description: input.description?.trim() || undefined,
+    instructorId: input.instructorId,
+    title: input.title.trim(),
+  };
+
+  const response = await api.post("/courses", payload, true);
+  const normalized = normalizeCourse(resolveCoursePayload(response));
+
+  if (!normalized) {
+    throw new Error("Course was created but response was invalid.");
+  }
+
+  return normalized;
 }

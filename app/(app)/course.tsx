@@ -1,14 +1,14 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Pressable,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { Course } from "@/models/course/Course.model";
 import { getCoursesForRole } from "@/services/course.service";
@@ -23,7 +23,13 @@ export default function CourseScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("[CourseScreen] effect status/user:", {
+      hasUser: Boolean(user),
+      status,
+    });
+
     if (status !== "authenticated" || !user) {
+      console.warn("[CourseScreen] skipped fetch: user not authenticated");
       setLoading(false);
       return;
     }
@@ -33,11 +39,13 @@ export default function CourseScreen() {
     let isActive = true;
 
     async function loadCourses() {
+      console.log("[CourseScreen] loadCourses start");
       setLoading(true);
       setError(null);
 
       try {
         const response = await getCoursesForRole(currentUser.role);
+        console.log("[CourseScreen] getCoursesForRole response:", response);
 
         if (!isActive) {
           return;
@@ -45,6 +53,7 @@ export default function CourseScreen() {
 
         setCourses(response.courses);
       } catch (loadError) {
+        console.error("[CourseScreen] loadCourses error:", loadError);
         if (!isActive) {
           return;
         }

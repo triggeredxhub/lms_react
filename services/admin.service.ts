@@ -17,13 +17,39 @@ export interface AdminStudent {
   [key: string]: unknown;
 }
 
+export interface AdminInstructor {
+  email?: string;
+  firstName?: string;
+  id: string;
+  lastName?: string;
+}
+
 function normalizeArrayResponse<T>(response: unknown): T[] {
   if (Array.isArray(response)) {
     return response as T[];
   }
 
   if (response && typeof response === "object") {
-    const values = Object.values(response as Record<string, unknown>);
+    const record = response as Record<string, unknown>;
+    const knownListKeys = ["items", "data", "results", "users", "courses"];
+
+    for (const key of knownListKeys) {
+      const value = record[key];
+
+      if (Array.isArray(value)) {
+        return value as T[];
+      }
+
+      if (value && typeof value === "object") {
+        const nested = normalizeArrayResponse<T>(value);
+
+        if (nested.length > 0) {
+          return nested;
+        }
+      }
+    }
+
+    const values = Object.values(record);
     const firstArray = values.find(Array.isArray);
 
     if (Array.isArray(firstArray)) {
@@ -119,6 +145,36 @@ function normalizeAdminStudent(item: unknown): AdminStudent | null {
   };
 }
 
+function normalizeAdminInstructor(item: unknown): AdminInstructor | null {
+  if (!item || typeof item !== "object") {
+    return null;
+  }
+
+  const record = item as Record<string, unknown>;
+  const id =
+    typeof record.id === "string"
+      ? record.id
+      : typeof record.id === "number"
+        ? String(record.id)
+        : typeof record.userId === "string"
+          ? record.userId
+          : typeof record.userId === "number"
+            ? String(record.userId)
+            : null;
+
+  if (!id) {
+    return null;
+  }
+
+  return {
+    email: typeof record.email === "string" ? record.email : undefined,
+    firstName:
+      typeof record.firstName === "string" ? record.firstName : undefined,
+    id,
+    lastName: typeof record.lastName === "string" ? record.lastName : undefined,
+  };
+}
+
 export async function getAdminStats(): Promise<AdminStats> {
   const [coursesResponse, studentsResponse, instructorsResponse] =
     await Promise.all([
@@ -151,4 +207,12 @@ export async function getAdminStudents(): Promise<AdminStudent[]> {
   return normalizeArrayResponse<unknown>(response)
     .map((student) => normalizeAdminStudent(student))
     .filter((student): student is AdminStudent => student !== null);
+}
+
+export async function getAdminInstructors(): Promise<AdminInstructor[]> {
+  const response = await api.get("/users", { role: "instructor" }, true);
+
+  return normalizeArrayResponse<unknown>(response)
+    .map((instructor) => normalizeAdminInstructor(instructor))
+    .filter((instructor): instructor is AdminInstructor => instructor !== null);
 }
