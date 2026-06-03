@@ -1,94 +1,33 @@
-import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Pressable,
-    SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
     View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 
-import { Course } from "@/models/course/Course.model";
-import { CourseFeedItem } from "@/models/course/CourseFeed.model";
+import type { CourseTabKey } from "@/lib/course-detail-context";
+import { useCourseDetailContext } from "@/lib/course-detail-context";
 import {
-    getCourse,
-    getCourseClassworkForRole,
-} from "@/services/course.service";
-import { useAuthStore } from "@/stores/auth.store";
+    formatFeedType,
+    getEmptyState,
+    getFeedLinkLabelForTab,
+    getItemDescription,
+    getItemId,
+    getItemsForTab,
+    getItemTitle,
+    getSectionTitle,
+} from "@/lib/course-feed-tabs";
+import type { CourseFeedItem } from "@/models/course/CourseFeed.model";
 
-type ScreenState = {
-  course: Course | null;
-  feed: CourseFeedItem[];
-};
-
-const initialState: ScreenState = {
-  course: null,
-  feed: [],
-};
-
-export default function CourseDetailScreen() {
-  const { courseId } = useLocalSearchParams<{ courseId: string }>();
-  const status = useAuthStore((state) => state.status);
-  const user = useAuthStore((state) => state.user);
-
-  const [screenState, setScreenState] = useState(initialState);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const currentUser = user;
-
-    if (!courseId || !currentUser || status !== "authenticated") {
-      setLoading(false);
-      return;
-    }
-
-    const currentUserRole = currentUser.role;
-
-    let isActive = true;
-
-    async function loadCourse() {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const [course, feed] = await Promise.all([
-          getCourse(courseId),
-          getCourseClassworkForRole(courseId, currentUserRole),
-        ]);
-
-        if (!isActive) {
-          return;
-        }
-
-        setScreenState({ course, feed });
-      } catch (loadError) {
-        if (!isActive) {
-          return;
-        }
-
-        setScreenState(initialState);
-        setError(
-          loadError instanceof Error
-            ? loadError.message
-            : "Unable to load course details.",
-        );
-      } finally {
-        if (isActive) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void loadCourse();
-
-    return () => {
-      isActive = false;
-    };
-  }, [courseId, status, user]);
+export function CourseTabContent(props: { tab: CourseTabKey }) {
+  const { tab } = props;
+  const { error, isInstructor, loading, screenState, status, user } =
+    useCourseDetailContext();
 
   if (status !== "authenticated" || !user) {
     return (
@@ -102,6 +41,8 @@ export default function CourseDetailScreen() {
       </SafeAreaView>
     );
   }
+
+  const items = getItemsForTab(tab, screenState.feed);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -137,13 +78,29 @@ export default function CourseDetailScreen() {
 
         {!loading ? (
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Classwork feed</Text>
-            {screenState.feed.length === 0 ? (
-              <Text style={styles.emptyText}>
-                No classwork items available yet.
-              </Text>
+            <Text style={styles.sectionTitle}>{getSectionTitle(tab)}</Text>
+
+            {tab === "studentlist" ? (
+              <View style={styles.studentListCard}>
+                <Text style={styles.studentListHeading}>Student list view</Text>
+                {isInstructor ? (
+                  <Text style={styles.studentListText}>
+                    Student list data is not yet available from the course API.
+                    This tab is ready for endpoint integration.
+                  </Text>
+                ) : (
+                  <Text style={styles.studentListText}>
+                    Only instructors can access the student list.
+                  </Text>
+                )}
+                <Text style={styles.studentListMeta}>
+                  Course feed items currently loaded: {screenState.feed.length}
+                </Text>
+              </View>
+            ) : items.length === 0 ? (
+              <Text style={styles.emptyText}>{getEmptyState(tab)}</Text>
             ) : (
-              screenState.feed.map((item) => (
+              items.map((item) => (
                 <Pressable
                   key={`${item.type}-${getItemId(item)}`}
                   onPress={() => handleItemPress(item)}
@@ -156,7 +113,9 @@ export default function CourseDetailScreen() {
                   <Text style={styles.feedDescription}>
                     {getItemDescription(item)}
                   </Text>
-                  <Text style={styles.feedLink}>{getFeedLinkLabel(item)}</Text>
+                  <Text style={styles.feedLink}>
+                    {getFeedLinkLabelForTab(tab, item)}
+                  </Text>
                 </Pressable>
               ))
             )}
@@ -165,55 +124,6 @@ export default function CourseDetailScreen() {
       </ScrollView>
     </SafeAreaView>
   );
-}
-
-function getItemId(item: CourseFeedItem) {
-  switch (item.type) {
-    case "announcement":
-      return item.announcementId;
-    case "assignment":
-      return item.assignmentId;
-    case "discussion":
-      return item.discussionId;
-    case "material":
-      return item.materialId;
-    case "quiz":
-      return item.quizId;
-  }
-}
-
-function getItemTitle(item: CourseFeedItem) {
-  switch (item.type) {
-    case "announcement":
-      return item.title;
-    case "assignment":
-      return item.title;
-    case "discussion":
-      return item.title;
-    case "material":
-      return item.title;
-    case "quiz":
-      return item.quizTitle;
-  }
-}
-
-function getItemDescription(item: CourseFeedItem) {
-  switch (item.type) {
-    case "announcement":
-      return item.content || "No content provided.";
-    case "assignment":
-      return item.description || "No assignment description provided.";
-    case "discussion":
-      return item.content || "No discussion content provided.";
-    case "material":
-      return item.description || "No material description provided.";
-    case "quiz":
-      return item.description || "No quiz description provided.";
-  }
-}
-
-function formatFeedType(type: CourseFeedItem["type"]) {
-  return type.charAt(0).toUpperCase() + type.slice(1);
 }
 
 function handleItemPress(item: CourseFeedItem) {
@@ -229,19 +139,6 @@ function handleItemPress(item: CourseFeedItem) {
       return;
     default:
       return;
-  }
-}
-
-function getFeedLinkLabel(item: CourseFeedItem) {
-  switch (item.type) {
-    case "assignment":
-      return "Open assignment";
-    case "material":
-      return "Open material";
-    case "quiz":
-      return "Open quiz";
-    default:
-      return "Detail screen coming next";
   }
 }
 
@@ -356,6 +253,29 @@ const styles = StyleSheet.create({
     color: "#122033",
     fontSize: 20,
     fontWeight: "700",
+  },
+  studentListCard: {
+    backgroundColor: "#f7f9fc",
+    borderColor: "#d8deea",
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 10,
+    padding: 16,
+  },
+  studentListHeading: {
+    color: "#122033",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  studentListMeta: {
+    color: "#32415a",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  studentListText: {
+    color: "#5f6879",
+    fontSize: 14,
+    lineHeight: 20,
   },
   subtitle: {
     color: "#d3dbeb",
