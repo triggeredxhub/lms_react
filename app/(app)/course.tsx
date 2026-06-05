@@ -94,13 +94,13 @@ export default function CourseScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.heroCard}>
+        {/* <View style={styles.heroCard}>
           <Text style={styles.eyebrow}>Courses</Text>
           <Text style={styles.title}>Your course workspace</Text>
           <Text style={styles.subtitle}>
             Browse enrolled classes and open the classwork feed for any course.
           </Text>
-        </View>
+        </View> */}
 
         {loading ? (
           <View style={styles.centeredCard}>
@@ -115,8 +115,7 @@ export default function CourseScreen() {
         ) : null}
 
         {!loading ? (
-          <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Available courses</Text>
+          <>
             {courses.length === 0 ? (
               <Text style={styles.emptyText}>No courses available yet.</Text>
             ) : (
@@ -134,7 +133,7 @@ export default function CourseScreen() {
                 </Pressable>
               ))
             )}
-          </View>
+          </>
         ) : null}
       </ScrollView>
     </SafeAreaView>
@@ -222,12 +221,6 @@ const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: "#edf2f8",
     flex: 1,
-  },
-  sectionCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 24,
-    gap: 14,
-    padding: 20,
   },
   sectionTitle: {
     color: "#122033",
