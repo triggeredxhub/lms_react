@@ -9,8 +9,8 @@ import { CourseDetailProvider } from "@/lib/course-detail-context";
 import type { Course } from "@/models/course/Course.model";
 import type { CourseFeedItem } from "@/models/course/CourseFeed.model";
 import {
-    getCourse,
-    getCourseClassworkForRole,
+  getCourse,
+  getCourseClassworkForRole,
 } from "@/services/course.service";
 import { useAuthStore } from "@/stores/auth.store";
 
@@ -42,7 +42,7 @@ export default function CourseTabsLayout() {
       setLoading(false);
       return;
     }
-
+    const role = currentUser.role;
     let isActive = true;
 
     async function loadCourse() {
@@ -52,7 +52,7 @@ export default function CourseTabsLayout() {
       try {
         const [course, feed] = await Promise.all([
           getCourse(courseId),
-          getCourseClassworkForRole(courseId, currentUser.role),
+          getCourseClassworkForRole(courseId, role),
         ]);
 
         if (!isActive) {
